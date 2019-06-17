@@ -6,7 +6,9 @@ setup(
     py_modules=['uchit'],
     install_requires=[
         'Click',
-        'enum34'
+        'enum34',
+        'pyDOE',
+        'numpy'
     ],
     entry_points='''
         [console_scripts]
