@@ -1,6 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 
+from spark.discretizer.normalizer import ConfigNormalizer
+
 
 class ConfigValues:
     __metaclass__ = ABCMeta
@@ -25,6 +27,7 @@ class ConfigValues:
     def get_min_for_normalization(self):
         pass
 
+
 class ConfigType(Enum):
     INT = 1
     FLOAT = 2
@@ -34,47 +37,42 @@ class RangeValues(ConfigValues):
     __metaclass__ = ABCMeta
 
     def __init__(self):
-        self.__value = None
+        self._values = None
 
     def get_min(self):
-        self.__min
+        return self._min
 
     def get_max(self):
-        self.__max
+        return self._max
 
     def get_step(self):
-        self.__step
+        return self._step
 
     def get_values(self):
-        if self.__value is not None:
-            self.__value = range(self.__min, self.__max, self.__step)
-        return self.__value
+        if self._values is None:
+            self._values = range(self._min + self._step, self._max, self._step)
+        return self._values
 
     def get_num_elements(self):
         self.get_step()
 
     def get_max_for_normalization(self):
-        return self.__max_norm
+        return self._max_norm
 
     def get_min_for_normalization(self):
-        return self.__min_norm
+        return self._min_norm
 
 
 class IntRangeValues(RangeValues):
     def __init__(self, min_val, max_val, step,
-                 min_norm, max_norm # these are min and max possible values for normalization
+                 min_norm, max_norm  # these are min and max possible values for normalization
                  ):
         RangeValues.__init__(self)
-        self.__min = int(min_val)
-        self.__max = int(max_val)
-        self.__step = int(step)
-        self.__min_norm = int(min_norm)
-        self.__max_norm = int(max_norm)
-
-    def get_values(self):
-        if self.__value is not None:
-            self.__value = range(self.__min, self.__max, self.__step)
-        return self.__value
+        self._min = int(min_val)
+        self._max = int(max_val)
+        self._step = int(step)
+        self._min_norm = int(min_norm)
+        self._max_norm = int(max_norm)
 
     def get_type(self):
         return ConfigType.INT
@@ -85,11 +83,11 @@ class FloatRangeValues(RangeValues):
                  min_norm, max_norm  # these are min and max possible values for normalization
                  ):
         RangeValues.__init__(self)
-        self.__min = float(min_val)
-        self.__max = float(max_val)
-        self.__step = float(step)
-        self.__min_norm = min_val
-        self.__max_norm = max_norm
+        self._min = float(min_val)
+        self._max = float(max_val)
+        self._step = float(step)
+        self._min_norm = min_norm
+        self._max_norm = max_norm
 
     def get_type(self):
         return ConfigType.FLOAT
@@ -99,22 +97,28 @@ class PointValue(ConfigValues):
     __metaclass__ = ABCMeta
 
     def __init__(self, value, min_norm, max_norm):
-        self.__values = value
-        self.__min_norm = min_norm
-        self.__max_norm = max_norm
+        self._values = value
+        self._min_norm = min_norm
+        self._max_norm = max_norm
 
     def get_values(self):
-        return self.__values
+        return self._values
 
     def get_num_elements(self):
-        len(self.__values)
+        return len(self._values)
 
     def get_max_for_normalization(self):
-        return self.__max_norm
+        return self._max_norm
 
     def get_min_for_normalization(self):
-        return self.__min_norm
+        return self._min_norm
 
+    def get_normalized_value(self):
+        normalizer = ConfigNormalizer.norm_function(self._min_norm, self._max_norm)
+        return normalizer(self._values)
+
+    def get_type(self):
+        return None
 
 class IntPointValue(PointValue):
     def __init__(self, value, min_norm, max_norm):

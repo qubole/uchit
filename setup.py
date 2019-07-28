@@ -8,7 +8,8 @@ setup(
         'Click',
         'enum34',
         'pyDOE',
-        'numpy'
+        'numpy',
+        'scipy'
     ],
     entry_points='''
         [console_scripts]
