@@ -8,7 +8,6 @@ class LhsDiscreteSampler:
     # sample_size - total number of sample points required. this should be less than total_points
     def __init__(self,
                  normalized_configs,
-                 seed_value,
                  sample_size=None):
         self._normalized_configs = normalized_configs
         max_sample_size = max(list(map(lambda x: len(x), normalized_configs)))
@@ -18,10 +17,9 @@ class LhsDiscreteSampler:
             raise UnsupportedError('sample size cannot be more than ')
         else:
             self._sample_size = sample_size
-        self.__seed_value = seed_value
         self._config_size_array = map(len, self._normalized_configs)
 
-    def _get_samples(self, seed_value):
+    def get_samples(self, seed_value):
         numpy.random.seed(seed_value)
         total_num_configs = len(self._normalized_configs)
         max_points = max(self._config_size_array)

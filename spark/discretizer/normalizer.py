@@ -1,59 +1,58 @@
-# from ..config.config_values import ConfigType
-
-
 class ConfigNormalizer:
-    def __init__(self, configs):
-        self._configs = configs
-        self._config_dict = configs.get_config_dict()
-        self._config_name_list = list(self._config_dict.keys())
+    def __init__(self, config_set):
+        self._config_set = config_set
+        self._param_list = config_set.get_params
         self._normalized_config = self.__init_normalized_config()
 
     def __init_normalized_config(self):
         normalized_config = []
-        for config_name in self._config_name_list:
-            config_value = self._config_dict[config_name]
-            norm_values = ConfigNormalizer.normalize(config_value.get_values(),
-                                           config_value.get_min_for_normalization(),
-                                           config_value.get_max_for_normalization(),
-                                           config_value.get_type())
+        for param in self._param_list:
+            domain = param.get_domain()
+            norm_values = ConfigNormalizer.normalize(domain)
             normalized_config.append(norm_values)
         return normalized_config
 
-    def get_normalized_config(self):
+    def get_all_possible_normalized_configs(self):
         return self._normalized_config
 
-    def get_config_names(self):
-        return self._config_name_list
+    #TODO make this API clean
+    #  Currently it has assumption that normalized config_array will have values
+    #  from param in same order of self._param_list.
+    def denormalize_config(self, normalized_config_array):
+        res = list()
+        i = 0
+        for param in self._param_list:
+            res.append(ConfigNormalizer.denormalize(param, normalized_config_array[i]))
+            ++i
+        return res
+
+    def get_params(self):
+        return self._param_list
 
     @staticmethod
     def norm_function(max_norm, min_norm):
         return lambda a: (1/float(max_norm - min_norm)) * (a - min_norm)
 
     @staticmethod
-    def normalize(values, min_norm, max_norm, type):
-        norm_values = map(ConfigNormalizer.norm_function(min_norm, max_norm), values)
-        # If we want to normalize all the values to be in between 0 and 1, we might have to remove this condition
-        # if type == ConfigType.INT:
-        #     norm_values = map(int, norm_values)
+    def normalize_domain(domain):
+        norm_values = map(ConfigNormalizer.norm_function(domain.get_min(), domain.get_max()),
+                          domain.get_possible_values)
         return norm_values
 
-
-class ConfigDenormalizer:
-    def __init__(self, configs, config_keys):
-        self._configs = configs
-        self.__config_keys = config_keys
-
-    def denormalize_config(self, norm_config):
-        return_configs = {}
-        for key in self.__config_keys:
-            return_configs[key] = []
+    @staticmethod
+    def normalize(param, value):
+        domain = param.get_domain
+        return ConfigNormalizer.norm_function(domain.get_min(), domain.get_max())(value)
 
     @staticmethod
     def denorm_func(min_norm, max_norm):
         return lambda a: (a * (max_norm - min_norm)) + min_norm
 
     @staticmethod
-    def denormalize(value, min_norm, max_norm):
-        denormlizer_func = ConfigDenormalizer.denorm_func(min_norm, max_norm)
+    def denormalize(param, value):
+        domain = param.get_domain
+        denormlizer_func = ConfigNormalizer.denorm_func(domain.get_min(), domain.get_max())
         return denormlizer_func(value)
+
+
 

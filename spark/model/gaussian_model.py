@@ -6,7 +6,7 @@ import numpy as np
 import sys
 
 from spark.discretizer.lhs_discrete_sampler import LhsDiscreteSampler
-from spark.discretizer.normalizer import ConfigNormalizer, ConfigDenormalizer
+from spark.discretizer.normalizer import ConfigNormalizer
 
 
 class GaussianModel:
@@ -17,44 +17,46 @@ class GaussianModel:
     gamma = np.array([1, 0.01, 0.5, 1, 1, 1, 0.01])
     theta = np.array([1.0, 0.09, 0.17, 0.17, 0.17, 0.17, 0.8])
 
-    def __init__(self, configs):
+    def __init__(self, training_data, config_set):
         self.training_pair_wise_corr = None
         self.training_inp = []
         self.training_out = []
         self.training_inp_normalized = []
         self.training_conf_names = []
         self.best_out = None
-        self.configs = configs
+        self.training_data = training_data
+        self.config_set = config_set
+        self.normalizer = ConfigNormalizer(self.config_set)
 
     def train(self):
-        if not self.configs.configs_elements.config_elements_list:
+        if not self.training_data or self.training_data.size() == 0:
             raise Exception("No training data found")
 
-        for ele in self.configs.configs_elements.config_elements_list:
-            self.training_conf_names = list(map(lambda x: x[0], ele["configs"]))
-            self.training_inp.append(list(map(lambda x: x[1], ele["configs"])))
-            self.training_inp_normalized.append(list(map(lambda x: x[1].get_normalized_value(), ele["configs"])))
-            self.training_out.append(ele["out"])
+        for ele in self.training_data.get_training_data:
+            self.training_conf_names = ele["configs"].get_all_param_names
+            self.training_inp.append(ele["configs"].get_all_param_values)
+            param_dict = ele["configs"].get_params_dict()
+            self.training_inp_normalized.append(
+                list(map(lambda x: ConfigNormalizer.normalize(x, param_dict[x]), param_dict)))
+            self.training_out.append(ele["output"])
             self.best_out = min(self.training_out)
         # ToDo: Implement a train function to find precise values of alpha, beta and gamma
 
     def add_sample_to_train_data(self, config, out):
         self.training_pair_wise_corr = None
-        self.training_data.append(config)
-        self.training_out.append(out)
+        self.training_data.add_training_data(config, out)
 
-    def get_normlized_values(self):
+    def get_sampled_configs(self):
         # Normalize the values
         # Use LHS to get the correct values
-        normalizer = ConfigNormalizer(self.configs)
-        lhs_sampler = LhsDiscreteSampler(normalizer._normalized_config, 2)
-        return lhs_sampler._get_samples(2)
+        lhs_sampler = LhsDiscreteSampler(self.normalizer.get_all_possible_normalized_configs(), 2)
+        return lhs_sampler.get_samples(2)
 
     def get_best_config(self):
         if self.training_inp_normalized is None:
             raise Exception("No training data found")
 
-        normalized_values = self.get_normlized_values()
+        normalized_values = self.get_sampled_configs()
         best_config_value = None
         best_config = {}
         best_out = sys.maxint
@@ -63,12 +65,12 @@ class GaussianModel:
             if out < best_out:
                 best_out = out
                 best_config_value = config
-        for name in self.training_conf_names():
-            config_value = self.configs[name]
-            best_config[name] = ConfigDenormalizer.denormalize(
-                best_config_value,
-                config_value.get_min_for_normalization(),
-                config_value.get_max_for_normalization())
+
+        denorm_best_config = self.normalizer.denormalize_config(best_config_value)
+        i = 0
+        for param in self.normalizer.get_params():
+            best_config[param.get_name] = denorm_best_config[i]
+            ++i
         return best_config
 
     def get_correlation(self, var1, var2):
