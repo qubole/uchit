@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from enum import Enum
+import numpy
 
 
 class Domain:
@@ -34,8 +35,11 @@ class DomainType(Enum):
 class RangeDomain(Domain):
     __metaclass__ = ABCMeta
 
-    def __init__(self):
-        self._values = None
+    def __init__(self, min_val, max_val, step):
+        self._values = list(numpy.arange(min_val, max_val, step))
+        self._min = self._values[0]
+        self._max = self._values[len(self._values) - 1]
+        self._step = step
 
     def get_min(self):
         return self._min
@@ -47,12 +51,10 @@ class RangeDomain(Domain):
         return self._step
 
     def get_possible_values(self):
-        if self._values is None:
-            self._values = range(self._min + self._step, self._max, self._step)
         return self._values
 
     def get_num_elements(self):
-        self.get_step()
+        return len(self.get_possible_values())
 
 
 class IntRangeDomain(RangeDomain):
