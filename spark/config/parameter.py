@@ -8,3 +8,8 @@ class Parameter:
 
     def get_domain(self):
         return self.domain
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name and self.domain == other.domain
+        return NotImplemented
