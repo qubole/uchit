@@ -4,6 +4,7 @@ class TrainingData:
 
     def add_training_data(self, configs, output):
         self.data.append({"configs": configs, "output": output})
+        return self
 
     def get_training_data(self):
         return self.data

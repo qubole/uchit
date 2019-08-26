@@ -1,4 +1,5 @@
 import copy
+from collections import OrderedDict
 
 
 class Config:
@@ -9,7 +10,7 @@ class Config:
                  ):
         self.num_cores = num_cores
         self.total_memory = total_memory
-        self.params = dict()
+        self.params = OrderedDict()
 
     def add_param(self, param, value):
         self.params[param] = value

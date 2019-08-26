@@ -13,6 +13,9 @@ class ConfigSet:
     def get_params(self):
         return self.param_list
 
+    def get_size(self):
+        return len(self.param_list)
+
 
 # Set of all possible Parameter Values that can be used to tune a Job
 # Name is derived from Universal Set in Set Theory which is defined
@@ -35,6 +38,7 @@ class UniversalConfigSet(ConfigSet):
         return int(self.total_memory * 0.9)
 
     def _get_max_driver_memory(self):
+        # This will give a very small range for possible values of driver memory :thinking:
         return int(self.total_memory / self.num_cores)
 
     def _get_max_broadcast_threshold(self):
@@ -48,4 +52,5 @@ class UniversalConfigSet(ConfigSet):
                                                 512)))\
             .add_param(Parameter('spark.driver.memory',
                                  IntRangeDomain(256, self._get_max_driver_memory(), 256))) \
-            .add_param(Parameter('spark.executor.cores', IntRangeDomain(2, self.num_cores, 1)))
+            .add_param(Parameter('spark.executor.cores',
+                                 IntRangeDomain(1, self.num_cores, 1)))
