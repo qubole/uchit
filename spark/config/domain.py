@@ -36,10 +36,7 @@ class RangeDomain(Domain):
     __metaclass__ = ABCMeta
 
     def __init__(self, min_val, max_val, step):
-        if min_val < max_val:
-            self._values = list(numpy.arange(min_val, max_val, step))
-        elif min_val == max_val:
-            self._values = [min_val]
+        self._values = list(numpy.arange(min_val, max_val, step))
 
         if not self._values:
             raise ValueError("Illegal Arguments - min value: "
@@ -74,8 +71,9 @@ class RangeDomain(Domain):
 
 
 class IntRangeDomain(RangeDomain):
+    # both min_val and mx_val are inclusive
     def __init__(self, min_val, max_val, step):
-        RangeDomain.__init__(self, int(min_val), int(max_val), int(step))
+        RangeDomain.__init__(self, int(min_val), int(max_val) + 1, int(step))
 
     def get_type(self):
         return DomainType.INT
