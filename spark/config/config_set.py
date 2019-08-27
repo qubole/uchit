@@ -53,4 +53,4 @@ class UniversalConfigSet(ConfigSet):
             .add_param(Parameter('spark.driver.memory',
                                  IntRangeDomain(256, self._get_max_driver_memory(), 256))) \
             .add_param(Parameter('spark.executor.cores',
-                                 IntRangeDomain(1, self.num_cores, 1)))
+                                 IntRangeDomain(2, self.num_cores, 1)))

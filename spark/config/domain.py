@@ -69,6 +69,9 @@ class RangeDomain(Domain):
             return res
         return NotImplemented
 
+    def __hash__(self):
+        return hash(self._min) ^ hash(self._max) ^ hash(self._step) ^ hash(self.get_type())
+
 
 class IntRangeDomain(RangeDomain):
     # both min_val and mx_val are inclusive
