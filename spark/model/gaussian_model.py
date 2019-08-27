@@ -1,6 +1,5 @@
 from scipy.stats import norm
 
-import itertools
 import math
 import numpy as np
 import sys
@@ -12,7 +11,7 @@ from spark.discretizer.normalizer import ConfigNormalizer
 
 class GaussianModel:
 
-    # ToDO - Fix the values initialisation
+    # TODO - Fix the values initialisation
     alpha = 2.0
     beta = np.array([1, 1, 1, 1]) * pow(10, -6)
     gamma = np.array([1, 1, 1, 1])
@@ -108,7 +107,7 @@ class GaussianModel:
         i = 0
         for param in self.normalizer.get_params():
             best_config[param.get_name] = denorm_best_config[i]
-            ++i
+            i = i + 1
         return best_config
 
     def get_correlation(self, var1, var2):

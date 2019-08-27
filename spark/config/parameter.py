@@ -13,3 +13,6 @@ class Parameter:
         if isinstance(other, self.__class__):
             return self.name == other.name and self.domain == other.domain
         return NotImplemented
+
+    def __hash__(self):
+        return hash(self.name) ^ self.domain.__hash__()
