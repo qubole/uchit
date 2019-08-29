@@ -26,7 +26,7 @@ class ConfigNormalizer:
         res = list()
         i = 0
         for param in self._param_list:
-            res.append(ConfigNormalizer.denormalize(param, normalized_config_array[i]))
+            res.append(ConfigNormalizer.denormalize_value(param, normalized_config_array[i]))
             i = i + 1
         return res
 
@@ -49,8 +49,8 @@ class ConfigNormalizer:
         return list(map(ConfigNormalizer.norm_function(domain.get_min(), domain.get_max()), value))
 
     @staticmethod
-    def denorm_func(min_norm, max_norm, type):
-        if type == DomainType.INT:
+    def denorm_func(min_norm, max_norm, domain_type):
+        if domain_type == DomainType.INT:
             return lambda a: round(a * (max_norm - min_norm)) + min_norm
         else:
             return lambda a: float(a * (max_norm - min_norm)) + min_norm
@@ -65,6 +65,6 @@ class ConfigNormalizer:
     @staticmethod
     def denormalize_value(param, value):
         domain = param.get_domain()
-        denormlizer_func = ConfigNormalizer.denorm_func(domain.get_min(), domain.get_max())
+        denormlizer_func = ConfigNormalizer.denorm_func(domain.get_min(), domain.get_max(), domain.get_type())
         return denormlizer_func(value)
 

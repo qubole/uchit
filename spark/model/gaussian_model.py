@@ -11,41 +11,41 @@ from spark.discretizer.normalizer import ConfigNormalizer
 
 class GaussianModel:
 
-    # TODO - Fix the values initialisation
-    alpha = 2.0
-    beta = np.array([1, 1, 1, 1]) * pow(10, -6)
-    gamma = np.array([1, 1, 1, 1])
-    theta = np.array([1.0, 0.17, 0.17, 0.8])
-
     def __init__(self, training_data, config_set):
         self.training_data = training_data
         self.config_set = config_set
-        self.training_inp = []
-        self.training_out = []
+        self.training_inp = np.empty((0, config_set.get_size()), float)
+        self.training_inp_normalized = np.empty((0, config_set.get_size()), float)
+        self.training_out = np.empty((0, 1), float)
         self.best_out = None
-        self.training_inp_normalized = []
         self.training_pair_wise_corr = None
         self.conf_names_params_mapping = {}
         self.normalizer = ConfigNormalizer(self.config_set)
+        # ToDO - Fix the values initialisation
+        self.alpha = 2.0
+        self.beta = np.ones((1, config_set.get_size()), float).transpose() * pow(10, -6)
+        self.gamma = np.ones(config_set.get_size(), float)
+        self.theta = np.ones(config_set.get_size(), float) * 0.01
 
     def train(self):
         if not self.training_data or self.training_data.size() == 0:
             raise Exception("No training data found")
 
-        self.training_inp = []
-        self.training_inp_normalized = []
-        self.training_out = []
+        self.training_inp = np.empty((0, self.config_set.get_size()), float)
+        self.training_inp_normalized = np.empty((0, self.config_set.get_size()), float)
+        self.training_out = np.empty((0, 1), float)
         self.best_out = None
         self.training_pair_wise_corr = None
 
         for data_point in self.training_data.get_training_data():
-            self.training_inp.append(data_point["configs"].get_all_param_values())
+            self.training_inp = np.vstack((self.training_inp, data_point["configs"].get_all_param_values()))
             param_dict = data_point["configs"].get_params_dict()
-            self.training_inp_normalized.append(
-                list(map(lambda x: ConfigNormalizer.norm_function(
-                    x.get_domain().get_max(), x.get_domain().get_min())(param_dict[x]),
-                         param_dict)))
-            self.training_out.append(data_point["output"])
+            self.training_inp_normalized = np.vstack((self.training_inp_normalized,
+                                                     list(map(lambda x: ConfigNormalizer.norm_function(
+                                                         x.get_domain().get_max(), x.get_domain().get_min())
+                                                        (param_dict[x]), param_dict))))
+
+            self.training_out = np.vstack((self.training_out, data_point["output"]))
             self.best_out = min(self.training_out)
         # ToDo: Implement a train function to find precise values of alpha, beta and gamma
 
@@ -85,7 +85,8 @@ class GaussianModel:
     def get_sampled_configs(self):
         # Normalize the values
         # Use LHS to get the correct values
-        lhs_sampler = LhsDiscreteSampler(self.normalizer.get_all_possible_normalized_configs(), 2)
+        # ToDo: Fix the logic on number of sample configs to be picked
+        lhs_sampler = LhsDiscreteSampler(self.normalizer.get_all_possible_normalized_configs(), 10)
         return lhs_sampler.get_samples(2)
 
     def get_best_config(self):
@@ -106,7 +107,7 @@ class GaussianModel:
         denorm_best_config = self.normalizer.denormalize_config(best_config_value)
         i = 0
         for param in self.normalizer.get_params():
-            best_config[param.get_name] = denorm_best_config[i]
+            best_config[param.get_name()] = denorm_best_config[i]
             i = i + 1
         return best_config
 
@@ -125,7 +126,7 @@ class GaussianModel:
                 for j in range(0, len(self.training_inp_normalized)):
                     metrics[i].append(
                         self.get_correlation(self.training_inp_normalized[i], self.training_inp_normalized[j]))
-            self.training_inp_normalized = np.array(metrics)
+            self.training_pair_wise_corr = np.array(metrics)
 
         return self.training_pair_wise_corr
 
@@ -145,7 +146,7 @@ class GaussianModel:
         term3 = np.dot(self.get_correlation_with_train_data(config).transpose(),
                        np.linalg.inv(self.get_training_pairwise_correlation()))
         term4 = np.dot(term3, term2)
-        return term1 + term4
+        return np.linalg.det(term1 + term4)
 
     def get_variance(self, config):
         corr_with_train_data = self.get_correlation_with_train_data(config)
