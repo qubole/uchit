@@ -10,7 +10,7 @@ from spark.model.training_data import TrainingData
 def gaussian_model():
     training_data = TrainingData()
     config_set = UniversalConfigSet(10, 1024 * 10)
-    yield GaussianModel(training_data, config_set)
+    yield GaussianModel(config_set, training_data)
 
 
 class TestGaussianModel:

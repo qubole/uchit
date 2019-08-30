@@ -7,11 +7,13 @@ import sys
 from spark.config.config import Config
 from spark.discretizer.lhs_discrete_sampler import LhsDiscreteSampler
 from spark.discretizer.normalizer import ConfigNormalizer
+from spark.model.model import Model
 
 
-class GaussianModel:
+class GaussianModel(Model):
 
-    def __init__(self, training_data, config_set):
+    def __init__(self, config_set, training_data):
+        super(GaussianModel, self).__init__()
         self.training_data = training_data
         self.config_set = config_set
         self.training_inp = np.empty((0, config_set.get_size()), float)
@@ -90,8 +92,8 @@ class GaussianModel:
         return lhs_sampler.get_samples(2)
 
     def get_best_config(self):
-        if self.training_inp_normalized is None:
-            raise Exception("No training data found")
+        if len(self.training_inp_normalized) == 0:
+            raise Exception("Model is not trained")
 
         normalized_values = self.get_sampled_configs()
         best_config_value = None
@@ -119,7 +121,7 @@ class GaussianModel:
         return correlation
 
     def get_training_pairwise_correlation(self):
-        if self.training_pair_wise_corr is None:
+        if self.training_pair_wise_corr is None or len(self.training_pair_wise_corr) == 0:
             metrics = []
             for i in range(0, len(self.training_inp_normalized)):
                 metrics.append([])
