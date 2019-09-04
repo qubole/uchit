@@ -26,7 +26,7 @@ class ConfigNormalizer:
         res = list()
         i = 0
         for param in self._param_list:
-            res.append(ConfigNormalizer.denormalize_value(param, normalized_config_array[i]))
+            res.append(ConfigNormalizer.denormalize(param, normalized_config_array[i]))
             i = i + 1
         return res
 
@@ -66,4 +66,4 @@ class ConfigNormalizer:
     def denormalize_value(param, value):
         domain = param.get_domain()
         denormlizer_func = ConfigNormalizer.denorm_func(domain.get_min(), domain.get_max(), domain.get_type())
-        return map(denormlizer_func, value)
+        return denormlizer_func(value)
