@@ -25,8 +25,8 @@ class UniversalConfigSet(ConfigSet):
     def __init__(self, num_cores,  # int
                  total_memory):
         ConfigSet.__init__(self)
-        if num_cores < 2 or total_memory < 512*1.1:
-            raise ValueError("Number of cores less than 2 and total memory less than 564 (1.1*512) is unsupported")
+        if num_cores < 1 or total_memory < 1024*1.1:
+            raise ValueError("Number of cores less than 1 and total memory less than 1126 (1.1*1024) is unsupported")
         self.num_cores = num_cores
         self.total_memory = total_memory
         self.__init_default_params()
@@ -51,6 +51,6 @@ class UniversalConfigSet(ConfigSet):
                                                 self._get_max_executor_mem(),  # max executor memory
                                                 512)))\
             .add_param(Parameter('spark.driver.memory',
-                                 IntRangeDomain(256, self._get_max_driver_memory(), 256))) \
+                                 IntRangeDomain(1024, self._get_max_driver_memory(), 256))) \
             .add_param(Parameter('spark.executor.cores',
-                                 IntRangeDomain(2, self.num_cores, 1)))
+                                 IntRangeDomain(1, self.num_cores, 1)))

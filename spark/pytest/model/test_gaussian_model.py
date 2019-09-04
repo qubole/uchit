@@ -38,7 +38,7 @@ class TestGaussianModel:
             "spark.executor.memory": 1024 * 5,
             "spark.sql.shuffle.partitions": 100,
             "spark.executor.cores": 4,
-            "spark.driver.memory": 512
+            "spark.driver.memory": 1024
         }
         model.add_sample_to_train_data(training_sample, 12)
         model.add_sample_to_train_data(training_sample, 12)
@@ -47,7 +47,7 @@ class TestGaussianModel:
                ["spark.sql.shuffle.partitions", "spark.executor.memory", "spark.driver.memory", "spark.executor.cores"]
 
         assert model.training_data.get_training_data()[0]["configs"].get_all_param_values() == \
-               [100, 1024 * 5, 512, 4]
+               [100, 1024 * 5, 1024, 4]
 
         model.train()
 
@@ -56,4 +56,4 @@ class TestGaussianModel:
             assert 0 <= normalized_config_value <= 1
 
         # Ensure order is maintained
-        assert model.training_inp_normalized[0] == model.training_inp_normalized[1]
+        assert (model.training_inp_normalized[0] == model.training_inp_normalized[1]).all()

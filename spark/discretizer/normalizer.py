@@ -35,7 +35,7 @@ class ConfigNormalizer:
 
     @staticmethod
     def norm_function(max_norm, min_norm):
-        return lambda a: (1/float(max_norm - min_norm)) * (a - min_norm)
+        return lambda a: (a - min_norm) if (max_norm == min_norm) else (1/float(max_norm - min_norm)) * (a - min_norm)
 
     @staticmethod
     def normalize_domain(domain):
@@ -66,5 +66,4 @@ class ConfigNormalizer:
     def denormalize_value(param, value):
         domain = param.get_domain()
         denormlizer_func = ConfigNormalizer.denorm_func(domain.get_min(), domain.get_max(), domain.get_type())
-        return denormlizer_func(value)
-
+        return map(denormlizer_func, value)
