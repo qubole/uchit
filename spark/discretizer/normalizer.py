@@ -39,11 +39,20 @@ class ConfigNormalizer:
             i = i + 1
         return res
 
+    def normalize_config(self, denormalized_config_array):
+        assert len(denormalized_config_array) == len(self._param_list)
+        res = list()
+        i = 0
+        for param in self._param_list:
+            res.append(ConfigNormalizer.normalize_value(param, denormalized_config_array[i]))
+            i = i + 1
+        return res
+
     def get_params(self):
         return self._param_list
 
     @staticmethod
-    def norm_function(max_norm, min_norm):
+    def norm_function(min_norm, max_norm):
         return lambda a: (a - min_norm) if (max_norm == min_norm) else (1/float(max_norm - min_norm)) * (a - min_norm)
 
     @staticmethod
@@ -51,6 +60,12 @@ class ConfigNormalizer:
         norm_values = map(ConfigNormalizer.norm_function(domain.get_min(), domain.get_max()),
                           domain.get_possible_values())
         return norm_values
+
+    @staticmethod
+    def normalize_value(param, value):
+        domain = param.get_domain()
+        norm_func = ConfigNormalizer.norm_function(domain.get_min(), domain.get_max())
+        return norm_func(value)
 
     @staticmethod
     def normalize(param, value):

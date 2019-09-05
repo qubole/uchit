@@ -25,7 +25,7 @@ class GaussianModel(Model):
         self.normalizer = ConfigNormalizer(self.config_set)
         # ToDO - Fix the values initialisation
         self.alpha = 2.0
-        self.beta = np.ones((1, config_set.get_size()), float).transpose() * pow(10, -6)
+        self.beta = np.ones((1, config_set.get_size()), float).transpose() * pow(10, 2)
         self.gamma = np.ones(config_set.get_size(), float)
         self.theta = np.ones(config_set.get_size(), float) * 0.01
 
@@ -100,11 +100,11 @@ class GaussianModel(Model):
         best_config = {}
         best_out = sys.maxint
         # for config in list(itertools.product(*normalized_values)):
-        for config in normalized_values:
-            out = self.predict(config)
+        for config_value in normalized_values:
+            out = self.predict(config_value)
             if out < best_out:
                 best_out = out
-                best_config_value = config
+                best_config_value = config_value
 
         denorm_best_config = self.normalizer.denormalize_config(best_config_value)
         i = 0
@@ -132,35 +132,35 @@ class GaussianModel(Model):
 
         return self.training_pair_wise_corr
 
-    def get_correlation_with_train_data(self, config):
+    def get_correlation_with_train_data(self, config_value):
         metrics = []
         for i in range(0, len(self.training_inp_normalized)):
             metrics.append([])
-            metrics[i].append(self.get_correlation(config, self.training_inp_normalized[i]))
+            metrics[i].append(self.get_correlation(config_value, self.training_inp_normalized[i]))
         return np.array(metrics)
 
     def get_training_params(self):
         return self.training_inp_normalized
 
-    def get_mean(self, config):
-        term1 = np.dot(config, self.beta)
+    def get_mean(self, config_value):
+        term1 = np.dot(config_value, self.beta)
         term2 = self.training_out - np.dot(self.get_training_params(), self.beta)
-        term3 = np.dot(self.get_correlation_with_train_data(config).transpose(),
+        term3 = np.dot(self.get_correlation_with_train_data(config_value).transpose(),
                        np.linalg.inv(self.get_training_pairwise_correlation()))
         term4 = np.dot(term3, term2)
         return np.linalg.det(term1 + term4)
 
-    def get_variance(self, config):
-        corr_with_train_data = self.get_correlation_with_train_data(config)
+    def get_variance(self, config_value):
+        corr_with_train_data = self.get_correlation_with_train_data(config_value)
         corr_pairwise_train_data = self.get_training_pairwise_correlation()
         term1 = np.dot(corr_with_train_data.transpose(), np.linalg.inv(corr_pairwise_train_data))
         term2 = np.dot(term1, corr_with_train_data)
         term3 = 1 - term2
         return np.linalg.det(pow(self.alpha, 2) * term3)
 
-    def get_mu(self, config):
-        return (self.best_out - self.get_mean(config)) / math.sqrt(self.get_variance(config))
+    def get_mu(self, config_value):
+        return (self.best_out - self.get_mean(config_value)) / math.sqrt(self.get_variance(config_value))
 
-    def predict(self, config):
-        mu = self.get_mu(config)
-        return math.sqrt(self.get_variance(config)) * (mu * norm.cdf(mu) + norm.pdf(mu))
+    def predict(self, config_value):
+        mu = self.get_mu(config_value)
+        return math.sqrt(self.get_variance(config_value)) * (mu * norm.cdf(mu) + norm.pdf(mu))

@@ -103,6 +103,6 @@ class TestGaussianModel:
                 config.add_param(param, 1)
             elif param.get_name() == 'spark.driver.memory':
                 config.add_param(param, 1024)
-        predicted_val = model.predict(config)
+        predicted_val = model.predict(model.normalizer.normalize_config(config.get_all_param_values()))
         assert predicted_val > 0
 
