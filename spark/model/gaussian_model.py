@@ -1,8 +1,9 @@
-from scipy.stats import norm
-
 import math
 import numpy as np
 import sys
+
+from collections import OrderedDict
+from scipy.stats import norm
 
 from spark.config.config import Config
 from spark.discretizer.lhs_discrete_sampler import LhsDiscreteSampler
@@ -97,7 +98,7 @@ class GaussianModel(Model):
 
         normalized_values = self.get_sampled_configs()
         best_config_value = None
-        best_config = {}
+        best_config = OrderedDict()
         best_out = sys.maxint
         # for config in list(itertools.product(*normalized_values)):
         for config_value in normalized_values:

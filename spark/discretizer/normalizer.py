@@ -19,7 +19,7 @@ class ConfigNormalizer:
         return self._normalized_config
 
     # TODO make this API clean
-    # Currently it has assumption that normalized config_array will have values
+    # Currently it has assumption that normalized_2D_array will have values
     # from param in same order of self._param_list.
     def denormalize_config_set(self, normalized_2D_array):
         assert len(normalized_2D_array) == len(self._param_list)
