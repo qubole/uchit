@@ -21,12 +21,21 @@ class ConfigNormalizer:
     # TODO make this API clean
     # Currently it has assumption that normalized config_array will have values
     # from param in same order of self._param_list.
+    def denormalize_config_set(self, normalized_2D_array):
+        assert len(normalized_2D_array) == len(self._param_list)
+        res = list()
+        i = 0
+        for param in self._param_list:
+            res.append(ConfigNormalizer.denormalize_array(param, normalized_2D_array[i]))
+            i = i + 1
+        return res
+
     def denormalize_config(self, normalized_config_array):
         assert len(normalized_config_array) == len(self._param_list)
         res = list()
         i = 0
         for param in self._param_list:
-            res.append(ConfigNormalizer.denormalize(param, normalized_config_array[i]))
+            res.append(ConfigNormalizer.denormalize_value(param, normalized_config_array[i]))
             i = i + 1
         return res
 
@@ -56,7 +65,7 @@ class ConfigNormalizer:
             return lambda a: float(a * (max_norm - min_norm)) + min_norm
 
     @staticmethod
-    def denormalize(param, value):
+    def denormalize_array(param, value):
         domain = param.get_domain()
         denormlizer_func = \
             ConfigNormalizer.denorm_func(domain.get_min(), domain.get_max(), domain.get_type())

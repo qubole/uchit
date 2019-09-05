@@ -1,5 +1,3 @@
-import pytest
-
 from spark.config.config_set import UniversalConfigSet
 from spark.discretizer.normalizer import ConfigNormalizer
 
@@ -37,7 +35,7 @@ def test_denormalization():
     config_set = UniversalConfigSet(4, 28*1024)
     normalizer = ConfigNormalizer(config_set)
     norm_configs = normalizer.get_all_possible_normalized_configs()
-    denorm_config = normalizer.denormalize_config(norm_configs)
+    denorm_config = normalizer.denormalize_config_set(norm_configs)
     i = 0
     for param in config_set.get_params():
         domain = param.get_domain()

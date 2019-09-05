@@ -88,7 +88,7 @@ class GaussianModel(Model):
         # Normalize the values
         # Use LHS to get the correct values
         # ToDo: Fix the logic on number of sample configs to be picked
-        lhs_sampler = LhsDiscreteSampler(self.normalizer.get_all_possible_normalized_configs(), 10)
+        lhs_sampler = LhsDiscreteSampler(self.normalizer.get_all_possible_normalized_configs())
         return lhs_sampler.get_samples(2)
 
     def get_best_config(self):
