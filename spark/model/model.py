@@ -1,3 +1,4 @@
+import copy
 from abc import abstractmethod
 
 
@@ -13,7 +14,7 @@ class Model(object):
     def get_model_mapping():
         from spark.model.gaussian_model import GaussianModel
         model_mapping = {
-            "gaussian": GaussianModel
+            "gaussian": copy.deepcopy(GaussianModel)
         }
         return model_mapping
 
@@ -26,7 +27,7 @@ class Model(object):
         if model_name.lower() not in cls.valid_models():
             raise Exception("Invalid model name. Valid models are: %s" % ", ".join(cls.valid_models()))
 
-        return cls.get_model_mapping()[model_name.lower()](config_set, training_data)
+        return copy.deepcopy(cls.get_model_mapping()[model_name.lower()](config_set, training_data))
 
     @abstractmethod
     def add_sample_to_train_data(self):
