@@ -100,7 +100,7 @@ class TestGaussianModel:
         model.add_sample_to_train_data(training_sample_3, 155)
         model.add_sample_to_train_data(training_sample_4, 343)
         model.train()
-        config = Config(4, 26544)
+        config = Config()
         params = config_set.get_params()
         for param in params:
             if param.get_name() == 'spark.executor.memory':

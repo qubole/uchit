@@ -78,7 +78,7 @@ class GaussianModel(Model):
             raise Exception("Invalid config to be added as training data. Missing config: %s, "
                             "Extra config: %s" % (", ".join(list(set(valid_config_names)-set(training_sample.keys()))),
                                                   ", ".join(list(set(training_sample.keys())-set(valid_config_names)))))
-        training_config = Config(self.config_set.num_cores, self.config_set.total_memory)
+        training_config = Config()
         # To maintain order to be same as the one in config_set(), iterate on valid_config_names instead of
         # training_sample.keys()
         for config_name in valid_config_names:

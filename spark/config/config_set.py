@@ -22,6 +22,14 @@ class ConfigSet:
 # as a set that contains all objects.
 class UniversalConfigSet(ConfigSet):
 
+    """
+    ToDo: Fix the min/max driver/executor memory initialization. Currently, the max executor memory suggested by the \
+    calculation can be greater than the actual max executor memory (max memory of the node, for the case when only one executor per node.
+
+    To fix the calculation would it be a good idea to take the number of worker nodes as user input :thinking:??
+    """
+
+
     def __init__(self, num_cores,  # int
                  total_memory):
         ConfigSet.__init__(self)
