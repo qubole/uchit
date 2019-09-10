@@ -1,4 +1,4 @@
-import math
+        import math
 import numpy as np
 import sys
 
@@ -102,7 +102,7 @@ class GaussianModel(Model):
         best_out = sys.maxint
         # for config in list(itertools.product(*normalized_values)):
         for config_value in normalized_values:
-            out = self.predict(config_value)
+            out = self.predict(config_value, self.alpha, self.beta, self.gamma, self.theta)
             if out < best_out:
                 best_out = out
                 best_config_value = config_value
@@ -114,54 +114,58 @@ class GaussianModel(Model):
             i = i + 1
         return best_config
 
-    def get_correlation(self, var1, var2):
+    def get_correlation(self, var1, var2, gamma, theta):
         correlation = 1
         for i in range(0, len(var1)):
-            term = math.exp(-self.theta[i] * pow(abs(var1[i] - var2[i]), self.gamma[i]))
+            term = math.exp(-theta[i] * pow(abs(var1[i] - var2[i]), gamma[i]))
             correlation = correlation * term
         return correlation
 
-    def get_training_pairwise_correlation(self):
+    def get_training_pairwise_correlation(self, gamma, theta):
         if self.training_pair_wise_corr is None or len(self.training_pair_wise_corr) == 0:
             metrics = []
             for i in range(0, len(self.training_inp_normalized)):
                 metrics.append([])
                 for j in range(0, len(self.training_inp_normalized)):
                     metrics[i].append(
-                        self.get_correlation(self.training_inp_normalized[i], self.training_inp_normalized[j]))
+                        self.get_correlation(self.training_inp_normalized[i], self.training_inp_normalized[j],
+                        gamma, theta))
             self.training_pair_wise_corr = np.array(metrics)
 
         return self.training_pair_wise_corr
 
-    def get_correlation_with_train_data(self, config_value):
+    def get_correlation_with_train_data(self, config_value, gamma, theta):
         metrics = []
         for i in range(0, len(self.training_inp_normalized)):
             metrics.append([])
-            metrics[i].append(self.get_correlation(config_value, self.training_inp_normalized[i]))
+            metrics[i].append(self.get_correlation(config_value, self.training_inp_normalized[i], gamma, theta))
         return np.array(metrics)
 
     def get_training_params(self):
         return self.training_inp_normalized
 
-    def get_mean(self, config_value):
-        term1 = np.dot(config_value, self.beta)
-        term2 = self.training_out - np.dot(self.get_training_params(), self.beta)
-        term3 = np.dot(self.get_correlation_with_train_data(config_value).transpose(),
-                       np.linalg.inv(self.get_training_pairwise_correlation()))
+    def get_mean(self, config_value, beta, gamma, theta):
+        term1 = np.dot(config_value, beta)
+        term2 = self.training_out - np.dot(self.get_training_params(), beta)
+        term3 = np.dot(self.get_correlation_with_train_data(config_value, gamma, theta).transpose(),
+                       np.linalg.inv(self.get_training_pairwise_correlation(gamma, theta)))
         term4 = np.dot(term3, term2)
         return np.linalg.det(term1 + term4)
 
-    def get_variance(self, config_value):
-        corr_with_train_data = self.get_correlation_with_train_data(config_value)
-        corr_pairwise_train_data = self.get_training_pairwise_correlation()
+    def get_variance(self, config_value, alpha, gamma, theta):
+        corr_with_train_data = self.get_correlation_with_train_data(config_value, gamma, theta)
+        corr_pairwise_train_data = self.get_training_pairwise_correlation(gamma, theta)
         term1 = np.dot(corr_with_train_data.transpose(), np.linalg.inv(corr_pairwise_train_data))
         term2 = np.dot(term1, corr_with_train_data)
         term3 = 1 - term2
-        return np.linalg.det(pow(self.alpha, 2) * term3)
+        return np.linalg.det(pow(alpha, 2) * term3)
 
-    def get_mu(self, config_value):
-        return (self.best_out - self.get_mean(config_value)) / math.sqrt(self.get_variance(config_value))
+    def get_mu(self, config_value, alpha, beta, gamma, theta):
+        # print self.get_variance(config_value, alpha, gamma, theta)
+        return (self.best_out - self.get_mean(config_value, beta, gamma, theta)) / \
+               math.sqrt(self.get_variance(config_value, alpha, gamma, theta))
 
-    def predict(self, config_value):
-        mu = self.get_mu(config_value)
-        return math.sqrt(self.get_variance(config_value)) * (mu * norm.cdf(mu) + norm.pdf(mu))
+    def predict(self, config_value, alpha, beta, gamma, theta):
+        mu = self.get_mu(config_value, alpha, beta, gamma, theta)
+        return math.sqrt(self.get_variance(config_value, alpha, gamma, theta)) * (mu * norm.cdf(mu) + norm.pdf(mu))
+
