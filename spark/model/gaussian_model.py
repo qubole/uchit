@@ -1,9 +1,10 @@
-        import math
+import math
 import numpy as np
 import sys
 
 from collections import OrderedDict
 from scipy.stats import norm
+from sklearn.linear_model import Lasso
 
 from spark.config.config import Config
 from spark.discretizer.lhs_discrete_sampler import LhsDiscreteSampler
@@ -26,9 +27,12 @@ class GaussianModel(Model):
         self.normalizer = ConfigNormalizer(self.config_set)
         # ToDO - Fix the values initialisation
         self.alpha = 2.0
-        self.beta = np.ones((1, config_set.get_size()), float).transpose() * pow(10, 2)
         self.gamma = np.ones(config_set.get_size(), float)
         self.theta = np.ones(config_set.get_size(), float) * 0.01
+        self.linearLasso = Lasso(alpha=1.0, copy_X=True, fit_intercept=True, max_iter=1000,
+                            normalize=False, positive=True, precompute=False, random_state=None,
+                            selection='cyclic', tol=0.0001, warm_start=False)
+        self.linear_regression_model = None
 
     def train(self):
         if not self.training_data or self.training_data.size() == 0:
@@ -44,13 +48,12 @@ class GaussianModel(Model):
             self.training_inp = np.vstack((self.training_inp, data_point["configs"].get_all_param_values()))
             param_dict = data_point["configs"].get_params_dict()
             self.training_inp_normalized = np.vstack((self.training_inp_normalized,
-                                                     list(map(lambda x: ConfigNormalizer.norm_function(
-                                                         x.get_domain().get_max(), x.get_domain().get_min())
-                                                        (param_dict[x]), param_dict))))
+                                                     list(map(lambda x: ConfigNormalizer.norm_function(param_dict[x],
+                                                         x.get_domain().get_min(), x.get_domain().get_max()), param_dict))))
 
             self.training_out = np.vstack((self.training_out, data_point["output"]))
             self.best_out = min(self.training_out)
-        # ToDo: Implement a train function to find precise values of alpha, beta and gamma
+        self.linear_regression_model = self.linearLasso.fit(self.training_inp_normalized, self.training_out)
 
     def get_param_object(self, config_name):
         if config_name not in self.conf_names_params_mapping:
@@ -89,20 +92,27 @@ class GaussianModel(Model):
         # Normalize the values
         # Use LHS to get the correct values
         # ToDo: Fix the logic on number of sample configs to be picked
-        lhs_sampler = LhsDiscreteSampler(self.normalizer.get_all_possible_normalized_configs())
+        config_samples = self.normalizer.get_all_possible_normalized_configs()
+        size_sample = max(list(map(lambda x: len(x), config_samples)))
+        if size_sample < 2000:
+            size_sample = 2000
+        lhs_sampler = LhsDiscreteSampler(self.normalizer.get_all_possible_normalized_configs(), size_sample)
         return lhs_sampler.get_samples(2)
 
     def get_best_config(self):
+        return self.get_best_config_for_config_space(self.get_sampled_configs())
+
+    def get_best_config_for_config_space(self, lhs_config_space):
         if len(self.training_inp_normalized) == 0:
             raise Exception("Model is not trained")
 
-        normalized_values = self.get_sampled_configs()
+        normalized_values = lhs_config_space
         best_config_value = None
         best_config = OrderedDict()
         best_out = sys.maxint
-        # for config in list(itertools.product(*normalized_values)):
+
         for config_value in normalized_values:
-            out = self.predict(config_value, self.alpha, self.beta, self.gamma, self.theta)
+            out = self.expected_improvement(config_value, self.alpha, self.gamma, self.theta)
             if out < best_out:
                 best_out = out
                 best_config_value = config_value
@@ -144,13 +154,15 @@ class GaussianModel(Model):
     def get_training_params(self):
         return self.training_inp_normalized
 
-    def get_mean(self, config_value, beta, gamma, theta):
-        term1 = np.dot(config_value, beta)
-        term2 = self.training_out - np.dot(self.get_training_params(), beta)
+    def get_mean(self, config_value, gamma, theta):
+        config_value_array = []
+        config_value_array.append(np.array(config_value))
+        term1 = self.linear_regression_model.predict(np.array(config_value_array))
+        term2 = np.concatenate(self.training_out, axis=0) - self.linear_regression_model.predict(self.training_inp_normalized)
         term3 = np.dot(self.get_correlation_with_train_data(config_value, gamma, theta).transpose(),
                        np.linalg.inv(self.get_training_pairwise_correlation(gamma, theta)))
         term4 = np.dot(term3, term2)
-        return np.linalg.det(term1 + term4)
+        return term1[0] + term4[0]
 
     def get_variance(self, config_value, alpha, gamma, theta):
         corr_with_train_data = self.get_correlation_with_train_data(config_value, gamma, theta)
@@ -160,12 +172,16 @@ class GaussianModel(Model):
         term3 = 1 - term2
         return np.linalg.det(pow(alpha, 2) * term3)
 
-    def get_mu(self, config_value, alpha, beta, gamma, theta):
+    def get_mu(self, config_value, alpha, gamma, theta):
         # print self.get_variance(config_value, alpha, gamma, theta)
-        return (self.best_out - self.get_mean(config_value, beta, gamma, theta)) / \
+        return (self.best_out - self.get_mean(config_value, gamma, theta)) / \
                math.sqrt(self.get_variance(config_value, alpha, gamma, theta))
 
-    def predict(self, config_value, alpha, beta, gamma, theta):
-        mu = self.get_mu(config_value, alpha, beta, gamma, theta)
+    def expected_improvement(self, config_value, alpha, gamma, theta):
+        mu = self.get_mu(config_value, alpha, gamma, theta)
         return math.sqrt(self.get_variance(config_value, alpha, gamma, theta)) * (mu * norm.cdf(mu) + norm.pdf(mu))
 
+    def predict(self, config_value):
+        predict_mean = self.get_mean(config_value, self.gamma, self.theta)
+        variance = math.sqrt(self.get_variance(config_value, self.alpha, self.gamma, self.theta))
+        return predict_mean - 2 * variance, predict_mean + 2 * variance

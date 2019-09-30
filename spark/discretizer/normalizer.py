@@ -31,6 +31,13 @@ class ConfigNormalizer:
         return res
 
     def denormalize_config(self, normalized_config_array):
+        """
+
+        :param normalized_config_array: Contains array of normalized values of each parameter specified in the same
+        order of param_list of the normalizer. For e.g., [0.1, 0.9] will be input for
+        param_list = ['spark.executor.cores', 'spark.executor.memory']
+        :return: Denormalized config array
+        """
         assert len(normalized_config_array) == len(self._param_list)
         res = list()
         i = 0
@@ -40,6 +47,13 @@ class ConfigNormalizer:
         return res
 
     def normalize_config(self, denormalized_config_array):
+        """
+
+        :param denormalized_config_array: Contains array of values of each parameter specified in the same
+        order of param_list of the normalizer. For e.g., [10, 23899] will be input for
+        param_list = ['spark.executor.cores', 'spark.executor.memory']
+        :return: Normalized config.
+        """
         assert len(denormalized_config_array) == len(self._param_list)
         res = list()
         i = 0
@@ -52,25 +66,29 @@ class ConfigNormalizer:
         return self._param_list
 
     @staticmethod
-    def norm_function(min_norm, max_norm):
-        return lambda a: (a - min_norm) if (max_norm == min_norm) else (1/float(max_norm - min_norm)) * (a - min_norm)
+    def norm_function(a, min_norm, max_norm):
+        if (max_norm == min_norm):
+            return (a - min_norm)
+        elif (max_norm <= a):
+            return 1
+        else:
+            return (1/float(max_norm - min_norm)) * (a - min_norm)
 
     @staticmethod
     def normalize_domain(domain):
-        norm_values = map(ConfigNormalizer.norm_function(domain.get_min(), domain.get_max()),
+        norm_values = map(lambda a: ConfigNormalizer.norm_function(a, domain.get_min(), domain.get_max()),
                           domain.get_possible_values())
         return norm_values
 
     @staticmethod
     def normalize_value(param, value):
         domain = param.get_domain()
-        norm_func = ConfigNormalizer.norm_function(domain.get_min(), domain.get_max())
-        return norm_func(value)
+        return ConfigNormalizer.norm_function(value, domain.get_min(), domain.get_max())
 
     @staticmethod
-    def normalize(param, value):
+    def normalize(param, value_list):
         domain = param.get_domain()
-        return list(map(ConfigNormalizer.norm_function(domain.get_min(), domain.get_max()), value))
+        return list(map(lambda a: ConfigNormalizer.norm_function(a, domain.get_min(), domain.get_max()), value_list))
 
     @staticmethod
     def denorm_func(min_norm, max_norm, domain_type):

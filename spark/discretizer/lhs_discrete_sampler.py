@@ -10,11 +10,9 @@ class LhsDiscreteSampler:
                  normalized_configs,
                  sample_size=None):
         self._normalized_configs = normalized_configs
-        max_sample_size = max(list(map(lambda x: len(x), normalized_configs)))
         if sample_size is None:
+            max_sample_size = max(list(map(lambda x: len(x), normalized_configs)))
             self._sample_size = max_sample_size
-        elif sample_size > max_sample_size:
-            raise UnsupportedError('sample size cannot be more than ')
         else:
             self._sample_size = sample_size
         self._config_size_array = map(len, self._normalized_configs)

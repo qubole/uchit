@@ -5,14 +5,18 @@ import pytest
 
 
 @pytest.mark.parametrize("num_cores, memory, param_list",
-                         [(4, 28*1024, [Parameter('spark.sql.shuffle.partitions', IntRangeDomain(10, 2000, 50)),
-                                        Parameter('spark.executor.memory', IntRangeDomain(7*1024*0.9, 28*1024*0.9, 512)),
-                                        Parameter('spark.driver.memory', IntRangeDomain(1024, (7*1024), 256)),
-                                        Parameter('spark.executor.cores', IntRangeDomain(1, 4, 1))]),
-                          (2, 28*1024, [Parameter('spark.sql.shuffle.partitions', IntRangeDomain(10, 2000, 50)),
-                                        Parameter('spark.executor.memory', IntRangeDomain(14*1024*0.9, 28*1024*0.9, 512)),
-                                        Parameter('spark.driver.memory', IntRangeDomain(1024, 14*1024, 256)),
-                                        Parameter('spark.executor.cores', IntRangeDomain(1, 2, 1))])
+                         [(4, 28*1024, [Parameter('spark.sql.shuffle.partitions', IntRangeDomain(10, 2000, 10)),
+                                        Parameter('spark.executor.memory', IntRangeDomain(7*1024*0.9, 28*1024*0.9, 403)),
+                                        Parameter('spark.driver.memory', IntRangeDomain(1024, 7*1024*0.9, 256)),
+                                        Parameter('spark.executor.cores', IntRangeDomain(1, 4, 1)),
+                                        Parameter('spark.sql.autoBroadcastJoinThreshold', IntRangeDomain(10, 100, 5)),
+                                        Parameter('spark.sql.statistics.fallBackToHdfs', IntRangeDomain(0, 1, 1))]),
+                          (2, 28*1024, [Parameter('spark.sql.shuffle.partitions', IntRangeDomain(10, 2000, 10)),
+                                        Parameter('spark.executor.memory', IntRangeDomain(14*1024*0.9, 28*1024*0.9, 403)),
+                                        Parameter('spark.driver.memory', IntRangeDomain(1024, 14*1024*0.9, 256)),
+                                        Parameter('spark.executor.cores', IntRangeDomain(1, 2, 1)),
+                                        Parameter('spark.sql.autoBroadcastJoinThreshold', IntRangeDomain(10, 100, 5)),
+                                        Parameter('spark.sql.statistics.fallBackToHdfs', IntRangeDomain(0, 1, 1))])
                           ])
 def test_universal_config_set(num_cores, memory, param_list):
     univ_config = UniversalConfigSet(num_cores, memory)
