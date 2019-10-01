@@ -70,24 +70,29 @@ class GaussianModel(Model):
 
                 return {'loss': loss, 'status': 'ok'}
             except Exception as e:
-                print(e)
+                print(e.message)
                 return {'loss': 0, 'status': 'fail'}
 
-        number_of_experiments = 200
-        best_hyper_params = fmin(minimize_training_loss,
-                                 space=space,
-                                 algo=tpe.suggest,
-                                 max_evals=number_of_experiments)
+        number_of_experiments = 10
+        try:
 
-        alpha = best_hyper_params["alpha"]
-        gamma = []
-        theta = []
+            best_hyper_params = fmin(minimize_training_loss,
+                                     space=space,
+                                     algo=tpe.suggest,
+                                     max_evals=number_of_experiments)
 
-        for i in range(1, self.config_set.get_size()+1):
-            gamma.append(best_hyper_params["gamma{}".format(i)])
-            theta.append(best_hyper_params["theta{}".format(i)])
+            alpha = best_hyper_params["alpha"]
+            gamma = []
+            theta = []
 
-        return alpha, np.array(gamma), np.array(theta)
+            for i in range(1, self.config_set.get_size()+1):
+                gamma.append(best_hyper_params["gamma{}".format(i)])
+                theta.append(best_hyper_params["theta{}".format(i)])
+
+            return alpha, np.array(gamma), np.array(theta)
+
+        except Exception as e:
+            return 1.0, np.ones(self.config_set.get_size(), float), np.ones(self.config_set.get_size(), float) * 0.01
 
     def train(self):
         if not self.training_data or self.training_data.size() == 0:
@@ -117,6 +122,7 @@ class GaussianModel(Model):
                 self.conf_names_params_mapping[param.get_name()] = param
         return self.conf_names_params_mapping[config_name]
 
+    # ToDo: Move this to combiner
     def add_sample_to_train_data(self, training_sample, out):
         """
         training_sample is expected to be of the format
