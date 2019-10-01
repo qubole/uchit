@@ -3,6 +3,7 @@ import numpy as np
 import sys
 
 from collections import OrderedDict
+from hyperopt import fmin, tpe, hp
 from scipy.stats import norm
 from sklearn.linear_model import Lasso
 
@@ -10,7 +11,6 @@ from spark.config.config import Config
 from spark.discretizer.lhs_discrete_sampler import LhsDiscreteSampler
 from spark.discretizer.normalizer import ConfigNormalizer
 from spark.model.model import Model
-
 
 class GaussianModel(Model):
 
@@ -25,14 +25,68 @@ class GaussianModel(Model):
         self.training_pair_wise_corr = None
         self.conf_names_params_mapping = {}
         self.normalizer = ConfigNormalizer(self.config_set)
-        # ToDO - Fix the values initialisation
-        self.alpha = 2.0
-        self.gamma = np.ones(config_set.get_size(), float)
-        self.theta = np.ones(config_set.get_size(), float) * 0.01
+        self.alpha = None
+        self.gamma = None
+        self.theta = None
         self.linearLasso = Lasso(alpha=1.0, copy_X=True, fit_intercept=True, max_iter=1000,
-                            normalize=False, positive=True, precompute=False, random_state=None,
-                            selection='cyclic', tol=0.0001, warm_start=False)
+                                 normalize=False, positive=True, precompute=False, random_state=None,
+                                 selection='cyclic', tol=0.0001, warm_start=False)
         self.linear_regression_model = None
+
+    def initialize_hyper_params(self):
+        space = {
+            'alpha': hp.uniform('alpha', 0, 10),
+            'gamma': hp.choice('gamma',
+                               [
+                                   {'gamma{}'.format(i): hp.uniform('gamma{}'.format(i), 1, 10) for i in range(1, self.config_set.get_size()+1)}
+                               ]),
+            'theta': hp.choice('theta',
+                               [
+                                   {'theta{}'.format(i): hp.uniform('theta{}'.format(i), 0.1, 0.5) for i in range(1, self.config_set.get_size()+1)}
+                               ]),
+        }
+
+        def minimize_training_loss(params):
+            def custom_func(item):
+                # Item can be string "gamma*" or "theta*"
+                return int(item[len("gamma")])
+
+            try:
+                loss = 0.0
+                alpha_val = params['alpha']
+
+                gamma_choice = params['gamma']
+                key_order = sorted(list(gamma_choice.keys()), key=custom_func)
+                gamma_val = np.array(map(lambda x: x[1], sorted(gamma_choice.items(), key=lambda i: key_order.index(i[0]))))
+
+                theta_choice = params['theta']
+                key_order = sorted(list(theta_choice.keys()), key=custom_func)
+                theta_val = np.array(map(lambda x: x[1], sorted(theta_choice.items(), key=lambda i: key_order.index(i[0]))))
+
+                for config_value, actual_out in zip(self.get_sampled_configs(), self.training_out):
+                    mean, variance = self.get_mean_variance(config_value, alpha_val, gamma_val, theta_val)
+                    loss = loss + abs(actual_out - max(mean + 2 * variance, mean - 2 * variance))
+
+                return {'loss': loss, 'status': 'ok'}
+            except Exception as e:
+                print(e)
+                return {'loss': 0, 'status': 'fail'}
+
+        number_of_experiments = 200
+        best_hyper_params = fmin(minimize_training_loss,
+                                 space=space,
+                                 algo=tpe.suggest,
+                                 max_evals=number_of_experiments)
+
+        alpha = best_hyper_params["alpha"]
+        gamma = []
+        theta = []
+
+        for i in range(1, self.config_set.get_size()+1):
+            gamma.append(best_hyper_params["gamma{}".format(i)])
+            theta.append(best_hyper_params["theta{}".format(i)])
+
+        return alpha, np.array(gamma), np.array(theta)
 
     def train(self):
         if not self.training_data or self.training_data.size() == 0:
@@ -54,6 +108,7 @@ class GaussianModel(Model):
             self.training_out = np.vstack((self.training_out, data_point["output"]))
             self.best_out = min(self.training_out)
         self.linear_regression_model = self.linearLasso.fit(self.training_inp_normalized, self.training_out)
+        self.alpha, self.gamma, self.theta = self.initialize_hyper_params()
 
     def get_param_object(self, config_name):
         if config_name not in self.conf_names_params_mapping:
@@ -181,7 +236,11 @@ class GaussianModel(Model):
         mu = self.get_mu(config_value, alpha, gamma, theta)
         return math.sqrt(self.get_variance(config_value, alpha, gamma, theta)) * (mu * norm.cdf(mu) + norm.pdf(mu))
 
+    def get_mean_variance(self, config_value, alpha, gamma, theta):
+        predict_mean = self.get_mean(config_value, gamma, theta)
+        variance = math.sqrt(self.get_variance(config_value, alpha, gamma, theta))
+        return predict_mean, variance
+
     def predict(self, config_value):
-        predict_mean = self.get_mean(config_value, self.gamma, self.theta)
-        variance = math.sqrt(self.get_variance(config_value, self.alpha, self.gamma, self.theta))
+        predict_mean, variance = self.get_mean_variance(config_value, self.alpha, self.gamma, self.theta)
         return predict_mean - 2 * variance, predict_mean + 2 * variance

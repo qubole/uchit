@@ -5,7 +5,8 @@ install_requires = [
     'Click',
     'enum34',
     'pyDOE',
-
+    'hyperopt',
+    'sklearn'
 ]
 if sys.version_info > (3, 0):
     install_requires.append('numpy')
