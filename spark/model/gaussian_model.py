@@ -12,6 +12,7 @@ from spark.discretizer.lhs_discrete_sampler import LhsDiscreteSampler
 from spark.discretizer.normalizer import ConfigNormalizer
 from spark.model.model import Model
 
+
 class GaussianModel(Model):
 
     def __init__(self, config_set, training_data):
