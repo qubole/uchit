@@ -175,10 +175,11 @@ class GaussianModel(Model):
 
         for config_value in normalized_values:
             out = self.expected_improvement(config_value, self.alpha, self.gamma, self.theta)
-            if out < best_out:
+            if out < best_out and out != 0:
                 best_out = out
                 best_config_value = config_value
-
+        if best_out == sys.maxint:
+            return best_config  # return empty dict if no config is better
         denorm_best_config = self.normalizer.denormalize_config(best_config_value)
         i = 0
         for param in self.normalizer.get_params():
