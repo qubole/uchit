@@ -61,6 +61,7 @@ class GaussianModel(Model):
                 self.conf_names_params_mapping[param.get_name()] = param
         return self.conf_names_params_mapping[config_name]
 
+    # ToDo: Move this to combiner
     def add_sample_to_train_data(self, training_sample, out):
         """
         training_sample is expected to be of the format
@@ -113,10 +114,11 @@ class GaussianModel(Model):
 
         for config_value in normalized_values:
             out = self.expected_improvement(config_value, self.alpha, self.gamma, self.theta)
-            if out < best_out:
+            if out < best_out and out != 0:
                 best_out = out
                 best_config_value = config_value
-
+        if best_out == sys.maxint:
+            return best_config  # return empty dict if no config is better
         denorm_best_config = self.normalizer.denormalize_config(best_config_value)
         i = 0
         for param in self.normalizer.get_params():
