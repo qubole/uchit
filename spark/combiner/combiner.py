@@ -6,19 +6,14 @@ from spark.model.training_data import TrainingData
 
 
 class Combiner:
-    def __init__(self, num_cores, total_memory, training_data):
+    def __init__(self, num_cores, total_memory, training_data=TrainingData()):
         self.num_cores = num_cores
         self.total_memory = total_memory
         self.config_set = UniversalConfigSet(num_cores, total_memory)
-        self.ml_model = GaussianModel(self.config_set, training_data)
-        self.math_model = AbstractModel(self.config_set, training_data, num_cores, total_memory)
         self.training_data = training_data
-
-    def __init__(self, num_cores, total_memory):
-        self.num_cores = num_cores
-        self.total_memory = total_memory
-        self.config_set = UniversalConfigSet(num_cores, total_memory)
-        self.training_data = TrainingData()
+        if self.training_data.size() > 0:
+            self.ml_model = GaussianModel(self.config_set, training_data)
+            self.math_model = AbstractModel(self.config_set, training_data, num_cores, total_memory)
 
     def add_training_data(self, training_sample, output):
         self.training_data.add_training_data(self._get_training_config(training_sample), output)

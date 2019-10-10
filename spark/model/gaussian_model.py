@@ -4,7 +4,7 @@ import sys
 
 from collections import OrderedDict
 from scipy.stats import norm
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import LinearRegression
 
 from spark.config.config import Config
 from spark.discretizer.lhs_discrete_sampler import LhsDiscreteSampler
@@ -29,9 +29,10 @@ class GaussianModel(Model):
         self.alpha = 2.0
         self.gamma = np.ones(config_set.get_size(), float)
         self.theta = np.ones(config_set.get_size(), float) * 0.01
-        self.linearLasso = Lasso(alpha=1.0, copy_X=True, fit_intercept=True, max_iter=1000,
-                            normalize=False, positive=True, precompute=False, random_state=None,
-                            selection='cyclic', tol=0.0001, warm_start=False)
+        # self.linearLasso = Lasso(alpha=1.0, copy_X=True, fit_intercept=True, max_iter=1000,
+        #                     normalize=False, positive=True, precompute=False, random_state=None,
+        #                     selection='cyclic', tol=0.0001, warm_start=False)
+        self.linear_model = LinearRegression(fit_intercept=True)
         self.linear_regression_model = None
 
     def train(self):
@@ -53,7 +54,7 @@ class GaussianModel(Model):
 
             self.training_out = np.vstack((self.training_out, data_point["output"]))
             self.best_out = min(self.training_out)
-        self.linear_regression_model = self.linearLasso.fit(self.training_inp_normalized, self.training_out)
+        self.linear_regression_model = self.linear_model.fit(self.training_inp_normalized, self.training_out)
 
     def get_param_object(self, config_name):
         if config_name not in self.conf_names_params_mapping:
@@ -98,7 +99,11 @@ class GaussianModel(Model):
         if size_sample < 2000:
             size_sample = 2000
         lhs_sampler = LhsDiscreteSampler(self.normalizer.get_all_possible_normalized_configs(), size_sample)
-        return lhs_sampler.get_samples(2)
+        lhs_samples = lhs_sampler.get_samples(2)
+        training_data_list = np.ndarray.tolist(self.training_inp_normalized)
+        # remove training data from samples
+        return_list = [x for x in lhs_samples if x not in training_data_list]
+        return return_list
 
     def get_best_config(self):
         return self.get_best_config_for_config_space(self.get_sampled_configs())
@@ -118,7 +123,12 @@ class GaussianModel(Model):
                 best_out = out
                 best_config_value = config_value
         if best_out == sys.maxint:
-            return best_config  # return empty dict if no config is better
+            # find second best mu
+            for config_value in normalized_values:
+                out_predict = self.predict(config_value)
+                if out_predict[0][0] < best_out:
+                    best_out = out_predict[0][0]
+                    best_config_value = config_value
         denorm_best_config = self.normalizer.denormalize_config(best_config_value)
         i = 0
         for param in self.normalizer.get_params():
@@ -160,7 +170,7 @@ class GaussianModel(Model):
         config_value_array = []
         config_value_array.append(np.array(config_value))
         term1 = self.linear_regression_model.predict(np.array(config_value_array))
-        term2 = np.concatenate(self.training_out, axis=0) - self.linear_regression_model.predict(self.training_inp_normalized)
+        term2 = self.training_out - self.linear_regression_model.predict(self.training_inp_normalized)
         term3 = np.dot(self.get_correlation_with_train_data(config_value, gamma, theta).transpose(),
                        np.linalg.inv(self.get_training_pairwise_correlation(gamma, theta)))
         term4 = np.dot(term3, term2)

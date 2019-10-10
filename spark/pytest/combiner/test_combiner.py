@@ -6,7 +6,7 @@ class TestCombiner:
     def test_combiner(self, training_data):
         combiner = Combiner(4, 26544, training_data)
         best_config = combiner.get_best_config()
-        assert True
+        assert bool(best_config)
 
     def test_combiner_temp(self):
         combiner = Combiner(4, 26544)
@@ -30,6 +30,8 @@ class TestCombiner:
         }
         runtime_in_sec = 92
         combiner.add_training_data(training_data_2, runtime_in_sec)
+        best_config = combiner.get_best_config()
+        assert bool(best_config)
         training_data_3 = {
             "spark.executor.memory": 11940,
             "spark.sql.shuffle.partitions": 460,
@@ -41,4 +43,4 @@ class TestCombiner:
         runtime_in_sec = 105
         combiner.add_training_data(training_data_3, runtime_in_sec)
         best_config = combiner.get_best_config()
-        print best_config
+        assert bool(best_config)
