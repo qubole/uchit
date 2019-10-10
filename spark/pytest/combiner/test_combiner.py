@@ -20,6 +20,8 @@ class TestCombiner:
         }
         runtime_in_sec = 248
         combiner.add_training_data(training_data_1, runtime_in_sec)
+        best_config = combiner.get_best_config()
+        assert bool(best_config)
         training_data_2 = {
             "spark.executor.memory": 23889,
             "spark.sql.shuffle.partitions": 200,
