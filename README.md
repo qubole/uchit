@@ -72,7 +72,7 @@ print best_config
 * Get the new best config to run the job again.
 * Repeat this process for predefined `n` number of times.
 
-#### Please see [Uchit Tutorial](https://github.com/user/repo/blob/branch/other_file.md) for more details.
+#### Please see [Uchit Tutorial](https://github.com/qubole/uchit/blob/master/Uchit%20Tutorial.ipynb) for more details.
 
 
 
