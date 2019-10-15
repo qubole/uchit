@@ -11,7 +11,7 @@ Auto tuning of Spark configuration is largely a manual effort, needs Big Data do
 Uchit takes the data from the previous runs of the same application (config values and run time of the application) as input. ML model trained on this data then predicts the best performing config out of the sampled configs.
 
 <p align="center">
-    <img width="100" src="https://github.com/qubole/uchit/raw/master/img/UchitArch.png"/> 
+    <img width="600" src="https://github.com/qubole/uchit/raw/master/img/UchitArch.png"/> 
 </p>
 
 
@@ -25,7 +25,7 @@ Uchit takes the data from the previous runs of the same application (config valu
 6. Predicted best performing config is denormalized and returned to the user. 
 
 <p align="center"> 
-    <img width="100" src="https://github.com/qubole/uchit/raw/master/img/UchitCombiner.png"/>
+    <img width="600" src="https://github.com/qubole/uchit/raw/master/img/UchitCombiner.png"/>
 </p>
  
  
